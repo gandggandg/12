@@ -1,0 +1,940 @@
+#SingleInstance, Force
+#Include copy.dll
+#Include Lib\Rufaydium.ahk
+FileEncoding,UTF-8
+
+Progress,0,,프로그림 실행준비중
+Process,close,chromedriver.exe
+Progress,50,,프로그림 실행준비중
+sleep,1000
+run,taskkill -f -im chromedriver.exe,,hide
+FileEncoding, UTF-8
+
+
+
+IniRead,filesave,%A_WorkingDir%\data\setting.ini,file,mp3
+if(filesave = "ERROR"){
+Gui, Add, Edit, x12 y9 w530 h20 +Disabled +center vyooloa,4K YouTube to Mp3 저장 공간을 적어주세요.
+Gui, Add, Edit, x12 y39 w530 h20 vmp3_edit,
+Gui, Add, Button, x12 y69 w530 h30 gsave_mp3 vmp3_vlabel,저장하기
+Gui, Show, xcenter ycenter h112 w560,파일저장
+Progress,100,,프로그림 실행준비중
+Progress,Off
+return
+}
+
+
+
+title:= "자동 게시글 등록기"
+
+sho:
+guicontrol,hide,yooloa
+guicontrol,hide,mp3_edit
+guicontrol,hide,mp3_vlabel
+
+Gui, Add, Button, x12 y9 w100 h20 +Disabled, 변환기
+Gui, Add, Edit, x122 y9 w100 h20 +center +Disabled vmp3_on_off_infor,OFF
+Gui, Add, Button, x452 y9 w320 h20 +Disabled, 간편로그
+Gui, Add, Edit, x452 y39 w320 h50 +Center +Disabled -VScroll vlog_infor,
+
+
+Gui, Add, Button, x12 y39 w100 h20 +Disabled,네이버 ID
+Gui, Add, Edit, x122 y39 w100 h20 vn_id,
+
+Gui, Add, Button, x232 y39 w100 h20 +Disabled,네이버 PW
+Gui, Add, Edit, x342 y39 w100 h20 vn_pw +password,
+
+
+Gui, Add, Button, x12 y69 w100 h20 +Disabled, 게시글 딜레이(초)
+Gui, Add, Edit, x122 y69 w100 h20 vpost_delay +center,
+
+;Gui, Add, Button, x232 y69 w100 h20 +Disabled,카테고리(순번)
+;Gui, Add, Edit, x342 y69 w100 h20 +number vtnsqjs,
+
+
+
+Gui, Add, ListView, x12 y99 w760 h240 glist_delet,NO|링크 주소| 키워드 | 제목 |다운로드 | 변환 | 글쓰기
+LV_ModifyCol(1,35) LV_ModifyCol(2,160) LV_ModifyCol(3,160) LV_ModifyCol(4,160)
+LV_ModifyCol(5,80) LV_ModifyCol(6,80) LV_ModifyCol(7,80)
+Gui, Add, Button, x12 y349 w100 h20 +Disabled, 유튜브 링크
+Gui, Add, Edit, x122 y349 w210 h20 vlink_you,
+Gui, Add, Button, x342 y349 w100 h20 +Disabled, 이미지 키워드
+Gui, Add, Edit, x452 y349 w150 h20 vimg_keyword,
+
+Gui, Add, Button, x12 y379 w100 h20 +Disabled, 제목설정
+Gui, Add, CheckBox, x122 y379 w160 h20 vyoutube_Check_a +Checked gcheck_a_y,유튜브 제목으로 설정하기
+Gui, Add, CheckBox, x322 y379 w20 h20 vyoutube_Check_b gcheck_b_y,
+Gui, Add, Edit, x342 y379 w260 h20 vtitle_name,
+
+Gui, Add, Button, x612 y349 w160 h50 gadd_link, 추가하기
+Gui, Add, Button, x612 y409 w160 h20 gfile_re_road,4K mp3 경로 재설정
+
+Gui, Add, Button, x12 y409 w100 h20 +Disabled, 카카오톡 주소
+Gui, Add, Edit, x122 y409 w210 h20 vkakao_talk_url,
+
+
+Gui, Add, Button, x342 y409 w100 h20 +Disabled, URL 캡션
+Gui, Add, Edit, x452 y409 w150 h20 vkakao_talk_url_a,
+
+Gui, Add, Button, x12 y439 w760 h30 gstart_macro vst, 시작하기
+Gui, Add, Button, x12 y439 w760 h30 gstart_macro_end vat Hidden, 중지하기
+Gui, Add, Button, x12 y439 w760 h30 gstart_macro_re vatt Hidden, 재시작하기
+
+
+Gui, Show, xcenter ycenter h485 w788,% title
+gui,submit,nohide
+
+global 4K_on_off := "off" ;mp3변환기 온 오프 확인
+global 4K_name:= "4K YouTube to MP3 – 개인 라이선스"
+
+Chrome := new Rufaydium(A_WorkingDir "\Lib\chromedriver.exe")
+Progress,100,,프로그림 실행준비중
+Progress,Off
+
+global main_site:= "https://clovanote.naver.com/home/note"
+global Page
+global Chrome
+
+
+
+settimer,4K_Label,1000
+IniRead,mp3_edit_read,%A_WorkingDir%\data\setting.ini,file,mp3
+if(mp3_edit_read != "ERROR" and mp3_edit_read != ""){
+	global mp3_folder_url := mp3_edit_read
+}
+guicontrol,,log_infor,`n환영합니다
+data_read()
+return
+
+
+Loop,{
+data_rin:= Page.html
+RegExMatch(data_rin,"비밀번호 찾기",vo_id)
+RegExMatch(data_rin,"알람",vo_csid)
+	if(stack > 5){
+		msgbox,64,안내,로그인에 실패하였습니다.
+			guicontrol,show,st
+			guicontrol,hide,at
+		return
+	}
+	if(vo_csid != ""){
+	break
+
+	}
+	if(vo_id != ""){
+		Page.cdp.QuerySelector("#id").sendkey(n_id)
+		sleep,500
+		Page.getElementsByName("id")[0].SendKey(key.tab) ;ArrowDown
+		sleep,500
+		Page.cdp.QuerySelector("#pw").sendkey(n_pw)
+		sleep,500
+		Page.getElementsByName("pw")[0].SendKey(key.enter) ;ArrowDown
+		guicontrol,,log_infor,% "`n네이버 로그인완료"
+		sleep,1000
+		break
+	}else{
+		Page.Navigate("https://nid.naver.com/nidlogin.login")
+		sleep,1000
+		stack++
+	}
+}
+Loing_count := ""
+
+
+
+
+
+return
+start_macro_re:
+gui,submit,nohide
+guicontrol,hide,att
+guicontrol,show,at
+Pause
+
+return
+start_macro_end:
+gui,submit,nohide
+guicontrol,hide,at
+guicontrol,show,att
+Pause
+
+Return
+start_macro:
+gui,submit,nohide
+
+LV_GetText(filechek,1,2)
+if(filechek = ""){
+msgbox,64,안내, 리스트에 추가된 항목이 없습니다.
+return
+}
+
+If not ConnectedToInternet(){
+	msgbox,64,안내,인터넷이 원활하지 않습니다.
+	return
+}
+
+IfWinnotExist,4K YouTube to MP3
+{
+msgbox,64,안내,유튜브 영상을 변환하는 4K프로그램이 켜져있지 않습니다.
+return
+}
+
+If not ConnectedToInternet(){
+	msgbox,64,안내,인터넷상태가 좋지 못하여 실행하지 못하였습니다.
+	return
+}
+
+
+
+guicontrol,hide,st
+guicontrol,show,at
+save_data()
+
+
+Loing_count:= ""
+Loop,% Lv_getcount(){		;다운로드 하는 곳 유튜브
+	Loing_count++
+		LV_GetText(youtube_link,Loing_count,2)	;링크
+		LV_GetText(img_in_keyword,Loing_count,3) ; 키워드
+		LV_GetText(blog_title,Loing_count,4)	;제목
+		LV_GetText(download_now,Loing_count,5)	;다운로드 현황
+		LV_GetText(change,Loing_count,6)	;변환 유무
+		LV_GetText(blog_poster,Loing_count,7) ;글쓰기
+			if(download_now != "완료"){
+				Loop,{
+					FileDelete,% mp3_folder_url "\*.mp3"
+					WinActivate,% 4K_name
+					Clipboard = % youtube_link
+					send,{esc}
+					sleep,200
+					send,{ctrl down}
+					sleep,200
+					send,{v}
+					sleep,200
+					send,{ctrl up}
+					stack:= ""
+					stack_r:= ""
+					stack_a:= ""
+					sleep,1000
+					Loop,{
+						Loop,% mp3_folder_url "\*.mp3"
+						{
+							if(A_LoopFileName != ""){
+								Loop,{
+									FileGetSize,check_file_se,% A_LoopFileFullPath
+									if(check_file_se != "0"){
+										FileGetSize,check_file_se,% A_LoopFileFullPath
+										bin:= check_file_se
+										sleep,1000
+										FileGetSize,check_file_se,% A_LoopFileFullPath
+										bina:= check_file_se
+										if(bin = bina){
+											stack_a := "on"
+											check_title_reg:= RegExReplace(RegExReplace(A_LoopFileName,"[^가-힣.\sA-Za-z0-9]"),"quot","")
+											RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+											check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+											FileMove,% A_LoopFileFullPath,%A_WorkingDir%\data\mp3\%check_file_name_reg%.mp3,1
+											LV_Modify(Loing_count,,,,,,"완료")
+											FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+											FileAppend,% "/주소:" youtube_link "/키워드:" img_in_keyword "/제목:" blog_title "/다운로드:완료/변환:-/글쓰기:-/",%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+											break
+										}
+									}
+								}
+							}
+						}
+						sleep,1000
+						stack++
+						if(stack >= 6){
+							stack:= ""
+							break
+						}
+						if(stack_a = "on"){
+							stack:= ""
+							break
+						}
+
+					}
+						if(stack_a = "on"){
+							stack:= ""
+							break
+						}
+				}
+			}
+}
+
+
+Loing_count:= ""			;이미지 다운로드 세션
+nia_a:= ""
+
+
+
+
+
+
+Loop,% Lv_getCount(){
+	Loing_count++
+	LV_GetText(youtube_link,Loing_count,2)	;링크
+	LV_GetText(img_in_keyword,Loing_count,3) ; 키워드
+	RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+	check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+	if(img_in_keyword != ""){
+		guicontrol,,log_infor,% "`n" img_in_keyword " 키워드`n중복제거 후 이미지 다운로드 중"
+		Loop,{
+			cound:= ""
+		RegExMatch(img_in_keyword,",",cgha)
+		if(cgha = ""){
+			cound:= "1"
+			arr := []
+			arr.InsertAt(1,img_in_keyword)
+		}else{
+			arr := []
+			Loop,Parse,img_in_keyword,`,
+			{
+				if(A_loopfield != ""){
+					cound++
+					arr.InsertAt(1,A_loopfield)
+				}
+			}
+		}
+
+			nia_a:= ""
+			Loop,4
+			{
+			Random,vchoq,1,% cound
+			HTTP := ComObjCreate("Msxml2.XMLHTTP.6.0")
+			HTTP.Open("GET", "https://www.pexels.com/ko-kr/search/" EncodeDecodeURI(arr[vchoq]) "?page=" A_index, false)
+			HTTP.Send()
+			Http_read:= HTTP.ResponseText
+			RegExMatch(Http_read,"BreakpointGrid_item__erUQQ",check_img)
+			if(check_img != ""){
+				check_red_data:= RegExReplace(Http_Read,"<div class="`"BreakpointGrid_item__erUQQ"`"","`n<div class="`"BreakpointGrid_item__erUQQ"`"")
+				Loop,Parse,check_red_data,`n
+				{
+					RegExMatch(A_LoopField,"<img src="`"(.*?)\?auto=compress",cho)
+					if(cho != ""){
+						FileRead,out_put_data,%A_WorkingDir%\data\img\imgdownload.txt
+						RegExMatch(out_put_data,cho1,check_lin)
+							if(check_lin = ""){
+								nia_a++
+								FileAppend,%  " [ " img_in_keyword " ] "  cho1 "`n",%A_WorkingDir%\data\img\imgdownload.txt
+								URLDownloadToFile,% cho1 "?auto=compress&w=600",%A_WorkingDir%\data\img\%check_file_name_reg%_%nia_a%.jpg
+								;	if(nia_a >= 4){
+								;		nia_a:= ""
+								;		data_on:= "on"
+								;	}
+								guicontrol,,log_infor,% "`n" arr[vchoq] " 키워드 이미지 " nia_a " 개 다운로드 완료"
+								break
+							}
+					}
+				}
+			}else{
+				if(nia_a > 0){
+					nia_a--
+				}
+			;guicontrol,,log_infor,% "`n" img_in_keyword " 키워드`n이미지 없음"
+			;LV_Modify(Loing_count,,,,img_in_keyword)
+			}
+			}
+
+
+
+
+			;if(data_on = "on"){
+			;	data_on:= ""
+				break
+			;}
+		}
+	}
+}
+
+;제목추출
+
+Loop,% Lv_getCount(){
+
+		LV_GetText(lin_text,A_index,2)
+		LV_GetText(img_in_keyword,A_index,3) ; 키워드
+		LV_GetText(title_set,A_index,4)
+		LV_GetText(download_now,A_index,5)	;다운로드 현황
+		LV_GetText(change,A_index,6)	;변환 유무
+		LV_GetText(blog_poster,A_index,7) ;글쓰기
+
+		guicontrol,,log_infor,% "`n" img_in_keyword " 키워드`n제목설정 중"
+		RegExMatch(readurl(lin_text),"title>(.*?) - YouTube</title>",chekc)
+		if(title_set = "대기중"){
+
+					RegExMatch(lin_text,"watch\?v\=(.*?)$",check_file_name)
+					check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+					FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+					cqwd:= RegExReplace(img_in_keyword,"( X )")
+					chekcas:= RegExReplace(RegExReplace(chekc1,"\&quot\;",""),"\&\#39\;","")
+					FileAppend,% "/주소:" lin_text "/키워드:" cqwd "/제목:" chekcas "/다운로드:" download_now "/변환:" change "/글쓰기:" blog_poster "/",%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+					LV_Modify(A_index,,,,,chekcas)
+		}
+}
+
+;클로바노트
+guicontrol,,log_infor,% "`n" img_in_keyword " 클로바노트 실행"
+	Page := Chrome.getSessionByUrl(main_site)
+	if !isobject(page)
+	{
+		Page := Chrome.NewSession()
+		Page.Navigate(main_site)
+	}else{
+		msgbox,64,안내, 객체오류입니다. 관리자에게 문의주세요
+		LV_add(,A_YYYY "/" A_MM "/" A_DD " [ " A_hour ":" A_min ":" A_sec " ] ","페이지 로드 실패")
+	guicontrol,show,st
+	guicontrol,hide,at
+		return
+	}
+
+
+guicontrolget,n_id
+guicontrolget,n_pw
+
+Loop,{
+data_rin:= Page.html
+RegExMatch(data_rin,"비밀번호 찾기",vo_id)
+RegExMatch(data_rin,"알람",vo_csid)
+	if(stack > 5){
+		msgbox,64,안내,로그인에 실패하였습니다.
+			guicontrol,show,st
+			guicontrol,hide,at
+		return
+	}
+	if(vo_csid != ""){
+	break
+
+	}
+	if(vo_id != ""){
+		Page.cdp.QuerySelector("#id").sendkey(n_id)
+		sleep,500
+		Page.getElementsByName("id")[0].SendKey(key.tab) ;ArrowDown
+		sleep,500
+		Page.cdp.QuerySelector("#pw").sendkey(n_pw)
+		sleep,500
+		Page.getElementsByName("pw")[0].SendKey(key.enter) ;ArrowDown
+		guicontrol,,log_infor,% "`n네이버 로그인완료"
+		sleep,1000
+		break
+	}else{
+		Page.Navigate("https://nid.naver.com/nidlogin.login")
+		sleep,1000
+		stack++
+	}
+}
+Loing_count := ""
+
+
+
+
+
+Loop,% Lv_getCount(){
+	Loing_count++
+		LV_GetText(youtube_link,Loing_count,2)	;링크
+		LV_GetText(img_in_keyword,Loing_count,3) ; 키워드
+		LV_GetText(blog_title,Loing_count,4)	;제목
+		LV_GetText(download_now,Loing_count,5)	;다운로드 현황
+		LV_GetText(change,Loing_count,6)	;변환 유무
+		LV_GetText(blog_poster,Loing_count,7) ;글쓰기
+stack:= ""
+Page.Navigate("https://clovanote.naver.com/home/note")
+Settings := Page.getElementsByClassName("ant-modal-close-x")[0]
+Settings.Click()
+stack:= ""
+if(change != "완료") and (change != "성공"){
+	guicontrol,,log_infor,% "`n" youtube_link "클로바 변환중"
+			RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+			check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+			filelocation := "C:\Users\zzgod\OneDrive\바탕 화면\유튜브 블로그 글쓰기\data\mp3\" check_file_name_reg ".mp3" ;set file path
+			UploadFile := Page.querySelectorAll("input")[1] ;select file input element
+			UploadFile.Sendkey(StrReplace(filelocation,"\","/")) ;if Element is input element then file location can be set using SendKey()
+			UploadFile := Page.querySelectorAll("input")[0] ;select file input element
+			UploadFile.Sendkey(StrReplace(filelocation,"\","/")) ;if Element is input element then file location can be set using SendKey()
+
+			Settings := Page.getElementsByClassName("ant-modal-close-x")[0]
+			Settings.Click()
+
+Loop,{
+	if(stack >= 5){
+	stack:= ""
+	Page.Navigate("https://clovanote.naver.com/home/note")
+	}
+	RegExMatch(Page.html,"label_radio___u0c_x",choa) ;음성종류선택/ 회의 개인대화 등등
+		if(choa != ""){
+			Settings := Page.getElementsByClassName("ant-btn ant-btn-primary")[0]
+			Settings.Click()
+			break
+		}else{
+			RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+			check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+			filelocation := A_WorkingDir "\data\mp3\" check_file_name_reg ".mp3" ;set file path
+			UploadFile := Page.querySelectorAll("input")[1] ;select file input element
+			UploadFile.Sendkey(StrReplace(filelocation,"\","/")) ;if Element is input element then file location can be set using SendKey()
+			UploadFile := Page.querySelectorAll("input")[0] ;select file input element
+			UploadFile.Sendkey(StrReplace(filelocation,"\","/")) ;if Element is input element then file location can be set using SendKey()
+
+			Settings := Page.getElementsByClassName("ant-modal-close-x")[0]
+			Settings.Click()
+			stack++
+		}
+sleep,500
+}
+
+data_ping:= ""
+stack:= ""
+Loop,{
+	if(stack > 3){
+		LV_Modify(Loing_count,,,,,,,"실패")
+		break
+	}
+
+	data_lin:= Page.html
+	RegExMatch(data_lin,"overview-container",chack_data)
+		if(chack_data != ""){
+
+			Settings := Page.getElementsByClassName("btn___3dct3")[1]
+			Settings.Click()
+			sleep,1000
+			Settings := Page.getElementsByClassName("btn___3dct3")[3]
+			Settings.Click()
+			sleep,1000
+			Settings := Page.getElementsByClassName("ant-btn ant-btn-primary")[0]
+			Settings.Click()
+			RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+			check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+			Loop,{
+				IfExist,% "C:\Users\" A_UserName "\Downloads\" check_file_name_reg ".txt"
+				{
+
+					FileDelete,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+					FileMove,% "C:\Users\" A_UserName "\Downloads\" check_file_name_reg ".txt",%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+					FileDelete,% "C:\Users\" A_UserName "\Downloads\" check_file_name_reg ".txt"
+					data_ping:= "on"
+					stack:= ""
+
+					break
+				}else{
+					stack++
+					Sleep,1000
+				}
+			}
+			file_dat:= ""
+			FileRead,checkin,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+			Loop,Parse,checkin,`n
+			{
+				if(A_index >= 4 && A_loopfield != ""){
+					RegExMatch(A_loopfield,"\:",chek)
+					RegExMatch(A_loopfield,"clovanote.naver.com",qcwcwqsc)
+						if(chek = "" && qcwcwqsc = ""){
+							file_dat.= A_loopfield "`n"
+						}
+				}
+			}
+				if(data_ping != ""){
+					RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+					check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+					FileDelete,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+					FileAppend,% file_dat,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+					FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+					cqwd:= RegExReplace(img_in_keyword,"( X )")
+					FileAppend,% "/주소:" youtube_link "/키워드:" cqwd "/제목:" blog_title "/다운로드:" download_now "/변환:완료/글쓰기:" blog_poster "/",%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+					guicontrol,,log_infor,% "`n" youtube_link "클로바 변환완료"
+					LV_Modify(Loing_count,,,,,,,"완료")
+				}else{
+					guicontrol,,log_infor,% "`n" youtube_link "클로바 변환실패"
+					LV_Modify(Loing_count,,,,,,,"실패")
+				}
+				break
+		}
+}
+}else{
+	if(Loing_count > 0){
+	Loing_count:= Loing_count-1
+	}
+}
+}
+
+;네이버 글쓰기
+guicontrol,,log_infor,% "`n" youtube_link "네이버 글쓰기 대기중"
+
+
+
+
+
+
+Loing_count:= "0"
+Loop,% Lv_getCount(){
+	guicontrolget,n_id
+	Loing_count++
+		LV_GetText(youtube_link,Loing_count,2)	;링크
+		LV_GetText(img_in_keyword,Loing_count,3) ; 키워드
+		LV_GetText(blog_title,Loing_count,4)	;제목
+		LV_GetText(download_now,Loing_count,5)	;다운로드 현황
+		LV_GetText(change,Loing_count,6)	;변환 유무
+		LV_GetText(blog_poster,Loing_count,7) ;글쓰기
+if(change = "완료" and blog_title != "대기중" and change = "완료" and blog_poster != "완료"){
+
+	Page.Navigate("https://blog.naver.com/" n_id "?Redirect=Write")
+Loop,{
+RegExMatch(Page.url,"blog.naver",chekc_blog)
+	if(chekc_blog != ""){
+			Page.SwitchbyURL(Page.url) ; to switch to TAB 1
+			Page.Frame(0) ; switching to frame A
+			data:= page.getElementsByClassName("se-placeholder __se_placeholder se-ff-nanumgothic se-fs32")[0].innertext
+			if(data != ""){
+				sleep,1000
+				break
+			}
+	}
+}
+
+Settings := Page.getElementsByClassName("se-popup-button se-popup-button-cancel")[0]
+Settings.Click()						;이전글쓰기 취소창
+
+Settings := Page.getElementsByClassName("se-help-panel-close-button")[0]
+Settings.Click()
+
+
+Settings := Page.getElementsByClassName("se-text-paragraph se-text-paragraph-align-left")[0]
+Settings.Click()	 				;제목클릭
+Page.cdp.QuerySelector("se-text-paragraph se-text-paragraph-align-left").sendkey(blog_title) ;제목적기
+
+
+Settings := Page.getElementsByClassName("se-text-paragraph se-text-paragraph-align-left")[1]
+Settings.Click()
+
+RegExMatch(page.html,"<title>(.*?)</title>",chek_title)
+WinActivate,% chek_title1
+RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+fileread,youtube_link_read,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+Clipboard := youtube_link_read
+ClipWait
+send,{ctrl down}
+sleep,50
+send,{v}
+sleep,100
+send,{ctrl up}
+send,{ctrl up}
+send,{enter}
+Settings := Page.getElementsByClassName("se-help-panel-close-button")[0]
+Settings.Click()
+
+Loop,4
+{
+pToken := Gdip_Startup():= Gdip_Startup ()
+Gdip_SetBitmapToClipboard(pBitmap := Gdip_CreateBitmapFromFile(A_WorkingDir "\data\img\" check_file_name_reg "_" A_index ".jpg"))Gdip_SetBitmapToClipboard ( pBitmap := Gdip_CreateBitmapFromFile (A_WorkingDir "\data\img\" check_file_name_reg "_" A_index ".jpg"))
+Gdip_DisposeImage(pBitmap)Gdip_DisposeImage ( pBitmap )
+Gdip_Shutdown(pToken)Gdip_Shutdown ( pToken )
+FileGetSize,noa_bin,% A_WorkingDir "\data\img\" check_file_name_reg "_" A_index ".jpg"
+if(noa_bin != 0){
+	sleep,500
+	send,{ctrl down}
+	sleep,50
+	send,{v}
+	sleep,100
+	send,{ctrl up}
+	send,{ctrl up}
+	send,{enter}
+	send,{enter}
+}
+}
+guicontrolget,kakao_talk_url
+guicontrolget,kakao_talk_url_a
+
+SendInput,% kakao_talk_url
+send,{enter}
+send,{enter}
+SendInput,% kakao_talk_url_a
+
+
+sleep,2000
+Settings := Page.getElementsByClassName("save_btn_area___73mZ")[0]
+Settings.Click()
+
+RegExMatch(page.html,"<title>(.*?)</title>",chek_title)
+LV_Modify(Loing_count,,,,,,,,"완료")
+WinActivate,% chek_title1
+send,{f5}
+sleep,500
+send,{enter}
+
+
+RegExMatch(youtube_link,"watch\?v\=(.*?)$",check_file_name)
+check_file_name_reg:= RegExReplace(check_file_name1,"\s")
+FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+FileDelete,%A_WorkingDir%\data\mp3\%check_file_name_reg%.mp3
+FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%.jpg
+FileDelete,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+
+FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%_1.txt
+FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%_2.txt
+FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%_3.txt
+FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%_4.txt
+
+
+LV_Delete(Loing_count)
+
+Loop,% Lv_GetCount(){
+	LV_Modify(A_index,,A_index)
+}
+sleep,% post_delay*1000
+}
+
+
+
+
+}
+
+
+
+Page.close() ; will close the active window / tab
+Page.exit() ; will close all windows / tabs will end up closing whole session
+
+guicontrol,show,st
+guicontrol,hide,at
+guicontrol,hide,att
+msgbox,64,안내,작성이 끝났습니다.
+
+return
+
+
+
+
+
+
+
+return
+return
+data_read(){
+Loop,%A_WorkingDir%\data\waitfile\*.txt
+{
+	fileread,read_data,% A_LoopFileFullPath
+	RegExMatch(read_data,"/주소:(.*?)/키워드:(.*?)/제목:(.*?)/다운로드:(.*?)/변환:(.*?)/글쓰기:(.*?)/",list_data)
+	if(list_data4 = "완료"){
+			check_file:= RegExReplace(A_LoopFileName,".txt","")
+			IfnotExist,%A_WorkingDir%\data\mp3\%check_file%.mp3
+			{
+				FileDelete,%A_WorkingDir%\data\waitfile\%check_file%.txt
+				FileAppend,% "/주소:" list_data1 "/키워드:" list_data2 "/제목:" blog_title3 "/다운로드:-/변환:" blog_title5 "/글쓰기:" blog_title6 "/",%A_WorkingDir%\data\waitfile\%check_file%.txt
+				Lv_add(,Lv_GetCount()+1,list_data1,list_data2,list_data3,"-",list_data5,list_data6)
+			}else{
+				Lv_add(,Lv_GetCount()+1,list_data1,list_data2,list_data3,list_data4,list_data5,list_data6)
+			}
+	}else{
+		Lv_add(,Lv_GetCount()+1,list_data1,list_data2,list_data3,list_data4,list_data5,list_data6)
+	}
+}
+
+
+	IniRead,n_id_read,%A_WorkingDir%\data\setting.ini,setting,n_id
+		guicontrol,,n_id,% (n_id_read = "" or n_id_read = "ERROR") ? "" : n_id_read
+	IniRead,n_pw_read,%A_WorkingDir%\data\setting.ini,setting,n_pw
+		guicontrol,,n_pw,% (n_pw_read = "" or n_pw_read = "ERROR") ? "" : n_pw_read
+	IniRead,post_delay_read,%A_WorkingDir%\data\setting.ini,setting,post_delay
+		guicontrol,,post_delay,% (post_delay_read = "" or post_delay_read = "ERROR") ? "" : post_delay_read
+	IniRead,tnsqjs_read,%A_WorkingDir%\data\setting.ini,setting,tnsqjs
+		guicontrol,,tnsqjs,% (tnsqjs_read = "" or tnsqjs_read = "ERROR") ? "" : tnsqjs_read
+return
+}
+return
+
+return
+save_data(){
+	guicontrolget,n_id
+	guicontrolget,n_pw
+	guicontrolget,post_delay
+	guicontrolget,tnsqjs
+
+
+	IniWrite,% n_id,%A_WorkingDir%\data\setting.ini,setting,n_id
+	IniWrite,% n_pw,%A_WorkingDir%\data\setting.ini,setting,n_pw
+	IniWrite,% post_delay,%A_WorkingDir%\data\setting.ini,setting,post_delay
+	IniWrite,% tnsqjs,%A_WorkingDir%\data\setting.ini,setting,tnsqjs
+return
+}
+return
+
+
+
+
+
+
+
+
+
+
+
+
+
+return
+add_link:
+gui,submit,nohide
+if(link_you = ""){
+msgbox,64,안내, 유튜브 링크를 입력해주세요.
+return
+}
+RegExMatch(link_you,"youtube",lin_in)
+if(lin_in = ""){
+	msgbox,64,안내,정확한 링크를 입력해주세요.
+	return
+}
+if(img_keyword = ""){
+msgbox,64,안내,키워드를 입력해주세요.
+return
+}
+if(4K_on_off = "off"){
+	msgbox,64,안내,4k 영상다운로드 응용프로그램 실행해주세요.
+return
+}
+
+;FileDelete,% mp3_folder_url "\*.mp3"
+
+Loop,% Lv_GetCount(){
+	LV_GetText(title_chack,A_index,2)
+	title_chack_reg:= RegExReplace(title_chack,"\s")
+	guicontrolget,link_you
+	link_you_reg:= RegExReplace(link_you,"\s")
+		if(title_chack_reg = link_you_reg){
+			msgbox,64,안내,중복된 링크가 존재합니다.
+			return
+		}
+}
+
+guicontrolget,link_you
+RegExMatch(link_you,"watch\?v\=(.*?)$",check_file_name)
+check_file_name_reg:= RegExReplace(check_file_name1,"\s") ;파일저장할 것 유튜브 진행
+if(check_file_name1 != ""){
+	FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+		title_name_in:= (youtube_Check_a = 1) ? "대기중" : title_name
+			FileAppend,% "/주소:" link_you "/키워드:" img_keyword "/제목:" title_name_in "/다운로드:-/변환:-/글쓰기:-/",%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+Lv_add(,Lv_getCount()+1,link_you,img_keyword,title_name_in,"-","-","-")
+guicontrol,,link_you,
+guicontrol,,img_keyword,
+guicontrol,,title_name,
+}else{
+	msgbox,64,안내,유튜브 링크를 가져올 수 없습니다.
+return
+}
+return
+list_delet:
+gui,submit,nohide
+list_code:= A_EventInfo
+msgbox,4,안내,% list_code " 번 항목을 삭제하시겠습니까?"
+IfMsgBox yes
+{
+	LV_GetText(delet_file,list_code,2)
+	RegExMatch(delet_file,"watch\?v\=(.*?)$",check_file_name)
+	check_file_name_reg:= RegExReplace(check_file_name1,"\s")
+	FileDelete,%A_WorkingDir%\data\waitfile\%check_file_name_reg%.txt
+	FileDelete,%A_WorkingDir%\data\mp3\%check_file_name_reg%.mp3
+	FileDelete,%A_WorkingDir%\data\img\%check_file_name_reg%.jpg
+	FileDelete,%A_WorkingDir%\data\text\%check_file_name_reg%.txt
+	LV_Delete(list_code)
+		Loop,% Lv_GetCount(){
+			LV_Modify(A_index,,A_index)
+		}
+}
+return
+
+
+
+return
+check_a_y: ;유튜브 제목
+gui,submit,nohide
+guicontrol,,youtube_Check_a,1
+guicontrol,,youtube_Check_b,0
+
+return
+check_b_y:
+gui,submit,nohide
+guicontrol,,youtube_Check_a,0
+guicontrol,,youtube_Check_b,1
+
+return
+4K_Label:
+IfWinExist,4K YouTube to MP3
+{
+	4K_on_off:= "on"
+	guicontrol,,mp3_on_off_infor,ON
+}else{
+	4K_on_off:= "off"
+	guicontrol,,mp3_on_off_infor,OFF
+}
+
+return
+file_re_road:
+gui,submit,nohide
+msgbox,4,안내,프로그램이 재시작되고, 설정파일이 초기화됩니다,`n진행하시겠습니까?
+IfMsgBox yes
+{
+FileDelete,%A_workingdir%\data\setting.ini
+Reload
+}
+
+return
+save_mp3:
+gui,submit,nohide
+if(mp3_edit = ""){
+	msgbox,64,안내,mp3가 저장되는 폴더를 입력해주세요.
+return
+}
+guicontrolget,mp3_edit
+RegExMatch(mp3_edit,"C:/",check_folder)
+
+if(check_folder = ""){
+	msgbox,64,안내,정확한 폴더명을 입력해주세요.
+return
+}
+IniWrite,% mp3_edit,%A_WorkingDir%\data\setting.ini,file,mp3
+msgbox,64,안내,저장되었습니다.
+goto,sho
+
+return
+ConnectedToInternet(flag=0x40){
+Return DllCall("Wininet.dll\InternetGetConnectedState", "Str", flag,"Int",0)
+}
+return
+
+return
+ReadURL(URL, encoding = "utf-8") {
+	static a := "AutoHotkey/" A_AhkVersion
+	if (!DllCall("LoadLibrary", "str", "wininet") || !(h := DllCall("wininet\InternetOpen", "str", a, "uint", 1, "ptr", 0, "ptr", 0, "uint", 0, "ptr")))
+		return 0
+	c := s := 0, o := ""
+	if (f := DllCall("wininet\InternetOpenUrl", "ptr", h, "str", url, "ptr", 0, "uint", 0, "uint", 0x80003000, "ptr", 0, "ptr"))
+	{
+		while (DllCall("wininet\InternetQueryDataAvailable", "ptr", f, "uint*", s, "uint", 0, "ptr", 0) && s > 0)
+		{
+			VarSetCapacity(b, s, 0)
+			DllCall("wininet\InternetReadFile", "ptr", f, "ptr", &b, "uint", s, "uint*", r)
+			o .= StrGet(&b, r >> (encoding = "utf-16" || encoding = "cp1200"), encoding)
+		}
+		DllCall("wininet\InternetCloseHandle", "ptr", f)
+	}
+	DllCall("wininet\InternetCloseHandle", "ptr", h)
+	return o
+}
+return
+EncodeDecodeURI(str, encode := true, component := true){
+   static Doc, JS
+   if !Doc {
+      Doc := ComObjCreate("htmlfile")
+      Doc.write("<meta http-equiv=""X-UA-Compatible"" content=""IE=9"">")
+      JS := Doc.parentWindow
+      ( Doc.documentMode < 9 && JS.execScript() )
+   }
+   Return JS[ (encode ? "en" : "de") . "codeURI" . (component ? "Component" : "") ](str)
+}
+return
+
+
+
+return
+GuiClose:
+Page.exit()
+page.close()
+page.Driver.Exit()
+page.Driver.Delete()
+ExitApp
